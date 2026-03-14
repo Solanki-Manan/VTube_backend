@@ -6,7 +6,6 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 
-
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -37,8 +36,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // check for user creation
     // return res
 
-    console.log("🔥 REQ FILES =", req.files);
-    console.log("🔥 REQ HEADERS =", req.headers["content-type"]);
+    console.log("REQ FILES =", req.files);
+    console.log("REQ HEADERS =", req.headers["content-type"]);
 
 
 
@@ -58,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (existedUser) {
         throw new ApiError(409, "User with email or username already exists")
     }
-    //console.log(req.files);
+    // console.log(req.files);
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;

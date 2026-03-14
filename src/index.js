@@ -9,7 +9,7 @@ import connectDB from "./db/index.js";
 
 import cookieParser from "cookie-parser";
 
-app.use(cookieParser());   // 👈 YE LINE ADD KARO
+app.use(cookieParser());   // 👈 YE LINE ADD KARO -- e thek bhale ha 
 
 
 app.use(express.json());
