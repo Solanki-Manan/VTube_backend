@@ -35,6 +35,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // remove password and refresh token field from response
     // check for user creation
     // return res
+    //sndk
+    
 
     console.log("REQ FILES =", req.files);
     console.log("REQ HEADERS =", req.headers["content-type"]);
@@ -110,7 +112,7 @@ const loginUser = asyncHandler(async (req, res) => {
     //password check
     //access & refresh token
     //send cookie
-
+    // console.log(".....");
 
     const { email, username, password } = req.body
 
