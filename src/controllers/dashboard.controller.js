@@ -38,13 +38,30 @@ const getChannelStats = asyncHandler(async (req, res) => {
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-    // TODO: Get all the videos uploaded by the channel
-    const userid=req.params.userid
-    const videos=await Video.find({owner:userid}).sort({createdAt:-1})
+    const userId = req.params.userid;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const totalVideos = await Video.countDocuments({ owner: userId });
+
+    const videos = await Video.find({ owner: userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
     return res.status(200).json(
-        new ApiResponse(true, "Videos fetched successfully", videos)
+        new ApiResponse(true, "Videos fetched successfully", {
+            videos,
+            page,
+            limit,
+            totalVideos,
+            totalPages: Math.ceil(totalVideos / limit)
+        })
     );
-})
+});
 
 export {
     getChannelStats, 

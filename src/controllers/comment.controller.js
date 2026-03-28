@@ -3,11 +3,14 @@ import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Comment } from "../models/comments.model.js";
-
+import redis from "../utils/redis.js";
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const {videoId} = req.params
-    const {page = 1, limit = 10} = req.query
+    //const {page = 1, limit = 10} = req.query
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
     if(!videoId){
         throw new ApiError(404,"Invalid video link")
     }
@@ -47,7 +50,10 @@ const addComment = asyncHandler(async (req, res) => {
     video: videoId,
     owner: ownerId,
   });
-
+  const keys = await redis.keys(`comments:${videoId}:*`);
+  if (keys.length) {
+      await redis.del(keys);
+  }
   return res
     .status(200)
     .json(new ApiResponse(200, comment, "Comment Added Sucessfully"));
@@ -68,6 +74,10 @@ const updateComment = asyncHandler(async (req, res) => {
   }
   comment.content = content;
   await comment.save();
+  const keys = await redis.keys(`comments:${comment.video}:*`);
+  if (keys.length) {
+      await redis.del(keys);
+  }
   return res
     .status(200)
     .json(new ApiResponse(200, comment, "Comment Updated Sucessfully"));
@@ -84,6 +94,10 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You are not the owner of this comment");
   }
   await comment.deleteOne();
+  const keys = await redis.keys(`comments:${comment.video}:*`);
+  if (keys.length) {
+      await redis.del(keys);
+  }
   return res
     .status(200)
     .json(new ApiResponse(200, null, "Comment Deleted Sucessfully"));

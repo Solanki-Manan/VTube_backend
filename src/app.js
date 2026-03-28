@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
+import redis from './utils/redis.js';
+
 const app=express();
 
 app.use(cors({
@@ -39,6 +41,14 @@ app.use("/api/v1/likes",likeRouter)
  app.use("/api/v1/subscriptions",subscriptionRouter)
  app.use("/api/v1/tweets",tweetRouter)
 
+
+//  app.get("/test-redis", async (req, res) => {
+//     await redis.set("fullname", "Manan", "EX", 60);
+
+//     const data = await redis.get("fullname");
+
+//     res.json({ data });
+// });
 
 // http://localhost:8000/api/v1/users/register
 

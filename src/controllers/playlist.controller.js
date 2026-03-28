@@ -3,6 +3,7 @@ import {Playlist} from "../models/playlist.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import redis from "../utils/redis.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -18,6 +19,10 @@ const createPlaylist = asyncHandler(async (req, res) => {
         description,
         owner: req.user._id
     })
+    const keys = await redis.keys(`userplaylists:${req.user._id}:*`);
+    if (keys.length) {
+        await redis.del(keys);
+    }
     return res
     .status(201)
     .json(new ApiResponse(true, "Playlist created successfully", playlist))
@@ -29,10 +34,27 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     if (!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid user id")
     }
-    const playlists = await Playlist.find({owner: userId}).populate("videos")
-    return res
-    .status(200)
-    .json(new ApiResponse(true, "User playlists retrieved successfully", playlists))
+
+     const page = parseInt(req.query.page) || 1;
+     const limit = parseInt(req.query.limit) || 10;
+     const skip = (page - 1) * limit;
+     const total = await Playlist.countDocuments({ owner: userId });
+
+    const playlists = await Playlist.find({ owner: userId })
+        .populate("videos")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(true, "User playlists retrieved successfully", {
+            playlists,
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit)
+        })
+    );
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
@@ -69,6 +91,13 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video already in playlist")
     }
     playlist.videos.push(videoId)
+
+    await redis.del(`playlist:${playlistId}`);
+    const keys = await redis.keys(`userplaylists:${req.user._id}:*`);
+    if (keys.length) {
+        await redis.del(keys);
+    }
+
     await playlist.save()
     return res
     .status(200)
@@ -98,6 +127,12 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     // ✅ SAVE
     await playlist.save();
 
+    await redis.del(`playlist:${playlistId}`);
+    const keys = await redis.keys(`userplaylists:${req.user._id}:*`);
+    if (keys.length) {
+        await redis.del(keys);
+    }
+
     return res
     .status(200)
     .json(new ApiResponse(true, "Video removed from playlist successfully", playlist))
@@ -116,6 +151,13 @@ const deletePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You are not the owner of this playlist")
     }
     await Playlist.findByIdAndDelete(playlistId);
+
+    await redis.del(`playlist:${playlistId}`);
+    const keys = await redis.keys(`userplaylists:${req.user._id}:*`);
+    if (keys.length) {
+        await redis.del(keys);
+    }
+
     return res
     .status(200)
     .json(new ApiResponse(true, "Playlist deleted successfully"))
@@ -138,6 +180,13 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     playlist.name = name || playlist.name
     playlist.description = description || playlist.description
     await playlist.save()
+
+    await redis.del(`playlist:${playlistId}`);
+    const keys = await redis.keys(`userplaylists:${req.user._id}:*`);
+    if (keys.length) {
+        await redis.del(keys);
+    }
+
     return res
     .status(200)
     .json(new ApiResponse(true, "Playlist updated successfully", playlist))

@@ -6,6 +6,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 
+import redis from "../utils/redis.js";
+
 
 const publishVideo = asyncHandler(async (req, res) => {
     //console.log("REQ BODY =", req.body)       //  add this----e bhale ha
@@ -57,28 +59,50 @@ const publishVideo = asyncHandler(async (req, res) => {
 })
 
 const getallvideos = asyncHandler(async (req, res) => {
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalvideos=await Video.countDocuments({ ispublished: true })
+
     const videos = await Video.find({ ispublished: true })
         .populate("owner", "fullname username email avatar")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        
     return res
-        .status(200)
-        .json(new ApiResponse(200, videos, "Videos fetched successfully"))
+    .status(200).json(
+        new ApiResponse(200,{
+            totalvideos,
+            totalpages: Math.ceil(totalvideos/limit),
+            currentpage: page,
+            videos  
+        },"All published videos fetched successfully")
+    )
 })
 
 
 const getvideobyid = asyncHandler(async (req, res) => {
         const { id } = req.params
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new ApiError(400, "Invalid video ID")
         }
+
+
         const video = await Video.findById(id)
         if (!video) {
             throw new ApiError(404, "Video not found")
         }
         video.views += 1
         await video.save()
+
+
         return res
             .status(200)
-            .json(new ApiResponse(200, true, "Video fetched by your given id"))
+            .json(new ApiResponse(200, video, "Video fetched by your given id"))
 })
 
 const updatevideo= asyncHandler(async (req, res) => {
@@ -100,6 +124,14 @@ const updatevideo= asyncHandler(async (req, res) => {
         video.title = title || video.title
         video.description = description || video.description
         await video.save()
+
+             // all videos list
+         const keys = await redis.keys("videos:*");
+            if (keys.length > 0) {
+                await redis.del(keys);
+            }       
+         await redis.del(`video:${id}`);   // single video
+
         return res
             .status(200)
             .json(new ApiResponse(200, true, "Video updated successfully"))
@@ -129,6 +161,13 @@ const deletevideo=asyncHandler(async (req, res) => {
         await cloudinary.uploader.destroy(video.thumbnailpublicid)
 
         await video.deleteOne()
+
+             // all videos list
+         const keys = await redis.keys("videos:*");
+        if (keys.length > 0) {
+            await redis.del(keys);
+        }       
+         await redis.del(`video:${id}`);   // single video
 
         return res
         .status(200)

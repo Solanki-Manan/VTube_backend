@@ -14,7 +14,7 @@ import {
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {upload} from "../middlewares/multer.middleware.js"
-
+import  cache  from '../middlewares/redis.middleware.js';
 const router = Router();
 
 router.route("/register").post(
@@ -49,9 +49,17 @@ router.route("/update-avatar").patch(verifyJWT,upload.single("avatar"),updateUse
 
 router.route("/update-cover-image").patch(verifyJWT,upload.single("coverImage"),updateUserCoverImage)
 
-router.route("/c/:username").get(verifyJWT,getUserChannelProfile)
+router.route("/getchannelprofile/:username").get(
+    verifyJWT,
+    cache((req)=>`channel:${req.params.username?.toLowerCase()}`,300),
+    getUserChannelProfile
+)
 
-router.route("/history").get(verifyJWT,getWatchHistory)
+router.route("/getwatchhistory").get(
+    verifyJWT,
+    cache((req)=>`watchhistory:${req.user._id.toString()}`,300),
+    getWatchHistory
+)
 
 
 export default router;

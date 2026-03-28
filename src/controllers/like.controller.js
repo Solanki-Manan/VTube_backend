@@ -4,8 +4,10 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 import {Like} from "../models/like.model.js"
-
-const togglelike= asyncHandler(async(req,res)=>{
+import { Comment } from "../models/comments.model.js";
+import { Tweet } from "../models/tweet.model.js";
+import redis from "../utils/redis.js";
+const togglevideolike= asyncHandler(async(req,res)=>{
     const {videoid}=req.params;
     if(!mongoose.Types.ObjectId.isValid(videoid)){
         throw new ApiError(400,"Invalid video id");
@@ -29,6 +31,9 @@ const togglelike= asyncHandler(async(req,res)=>{
         video:videoid,
         likedBy:req.user._id
     })
+
+    await redis.del(`totallikesofvideo:${videoid}`);
+
     return res
         .status(200)
         .json(new ApiResponse(200,like,"Video liked successfully"))
@@ -58,6 +63,7 @@ const togglecommentlike=asyncHandler(async(req,res)=>{
         comment:commentid,
         likedBy:req.user._id
     })
+    await redis.del(`totallikesofcomment:${commentid}`);    
     return res
         .status(200)
         .json(new ApiResponse(200,like,"Comment liked successfully"))
@@ -86,6 +92,7 @@ const toggletweetlike=asyncHandler(async(req,res)=>{
         tweet:tweetid,
         likedBy:req.user._id
     })
+    await redis.del(`totallikesoftweet:${tweetid}`);    
     return res
         .status(200)
         .json(new ApiResponse(200,like,"Tweet liked successfully"))
@@ -139,7 +146,7 @@ const totallikesoftweet=asyncHandler(async(req,res)=>{
 
 
 export {
-    togglelike,
+    togglevideolike,
     totallikesofvideo,
     togglecommentlike,
     toggletweetlike,

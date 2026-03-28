@@ -3,7 +3,7 @@ import {Tweet} from "../models/tweet.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-
+import redis from "../utils/redis.js"
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     try {
@@ -16,6 +16,9 @@ const createTweet = asyncHandler(async (req, res) => {
             content,
             owner:ownerId
         })
+        const keys = await redis.keys(`usertweets:${req.user._id}:*`);
+        if (keys.length) await redis.del(keys);
+
         return res
         .status(200)
         .json(new ApiResponse(200,true,"Tweet created sucessfully"))
@@ -54,6 +57,9 @@ const updateTweet = asyncHandler(async (req, res) => {
     }
     tweet.content=content
     await tweet.save()
+    const keys = await redis.keys(`usertweets:${req.user._id}:*`);
+    if (keys.length) await redis.del(keys);
+
     return res
     .status(200)
     .json(new ApiResponse(200,tweet,"Tweet updated sucessfully"))
@@ -71,6 +77,9 @@ const deleteTweet = asyncHandler(async (req, res) => {
         throw new ApiError(403,"You are not authorized to delete this tweet")
     }
     await tweet.deleteOne()
+    const keys = await redis.keys(`usertweets:${req.user._id}:*`);
+    if (keys.length) await redis.del(keys);
+
     return res
     .status(200)
     .json(new ApiResponse(200,null,"Tweet deleted sucessfully"))

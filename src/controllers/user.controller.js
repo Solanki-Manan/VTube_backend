@@ -5,6 +5,8 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
+import redis from "../utils/redis.js";
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -267,7 +269,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
-
+    await redis.del(`channel:${req.user.username.toLowerCase()}`);
     return res
         .status(200)
         .json(new ApiResponse(200, user, "User updated successfully"))
@@ -294,7 +296,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
-
+    await redis.del(`channel:${req.user.username.toLowerCase()}`);
     return res
         .status(200)
         .json(new ApiResponse(200, user, "Avatar updated successfully"))
@@ -323,6 +325,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password")
 
+    await redis.del(`channel:${req.user.username.toLowerCase()}`);
+        
     return res
         .status(200)
         .json(new ApiResponse(200, user, "Cover Image updated successfully"))
@@ -334,6 +338,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     if (!username?.trim()) {
         throw new ApiError(400, "Username is missing")
     }
+
+
     const channel = await User.aggregate([
         {
             $match: {
@@ -391,6 +397,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     if (!channel?.length) {
         throw new ApiError(404, "Channel does not exists")
     }
+
+    
+
     return res
         .status(200)
         .json(new ApiResponse(200, channel[0], "Channel fetched successfully"))
@@ -440,12 +449,11 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         }
     ])
 
+    const watchHistory=user[0].watchHistory;
     return res
         .status(200)
-        .json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully"))
+        .json(new ApiResponse(200, watchHistory, "Watch history fetched successfully"))
 })
-
-
 
 export {
     registerUser,
