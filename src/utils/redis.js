@@ -5,14 +5,13 @@ const redis = createClient({
    
 });
 
- await redis.connect();
-redis.on("connect", () => {
-    console.log("Redis connected for caching");
-});
-
 redis.on("error", (err) => {
-    console.error("Redis error while caching:", err);
+  console.log("Redis Error:", err);
 });
 
+export const connectRedis = async () => {
+  await redis.connect();
+  console.log("Redis connected ✅");
+};
 
 export default redis;

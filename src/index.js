@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 import express from "express";
 import {app} from "./app.js";
-
+import { connectRedis } from "./utils/redis.js";
 import connectDB from "./db/index.js";
 // import cookieParser from "cookie-parser";
 // app.use(cookieParser());   // 👈 YE LINE ADD KARO -- e thek bhale ha 
@@ -24,7 +24,8 @@ import connectDB from "./db/index.js";
 
 
 connectDB()
-    .then(() => {
+    .then(async () => {
+        await connectRedis();
         app.listen(process.env.PORT || 8000, () => {
             console.log(`Server is running on port ${process.env.PORT || 8000}`);
         });
