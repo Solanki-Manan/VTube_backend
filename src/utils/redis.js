@@ -5,11 +5,11 @@ const redis = new Redis(process.env.REDIS_URI, {
 });
 
 redis.on("connect", () => {
-    console.log("Redis connected");
+    console.log("Redis connected for caching");
 });
 
 redis.on("error", (err) => {
-    console.error("Redis error:", err);
+    console.error("Redis error while caching:", err);
 });
 
 export default redis;
