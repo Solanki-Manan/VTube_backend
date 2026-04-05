@@ -5,7 +5,7 @@ const redis = createClient({
    
 });
 
-// await redis.connect();
+ await redis.connect();
 redis.on("connect", () => {
     console.log("Redis connected for caching");
 });
