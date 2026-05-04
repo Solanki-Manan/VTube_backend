@@ -40,7 +40,7 @@ connectDB()
 
 connectRedis()
     .then(() => {
-        console.log("Redis connected");
+        console.log("Redis connected successfully");
     })
     .catch((err) => {
         console.log("Redis Error:", err);
