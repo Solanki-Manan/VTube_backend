@@ -66,14 +66,14 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatarLocalPath = req.files?.avatar[0]?.path;
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-    let coverImageLocalPath;
-    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-        coverImageLocalPath = req.files.coverImage[0].path
-    }
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required")
+    }
+    if(coverImageLocalPath === undefined){
+        console.log("Cover image file is not provided, proceeding without it.");
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
@@ -199,11 +199,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Unauthorized Request")
     }
 
-    const decodedToken = jwt.verify(
-        incomingRefreshToken,
-        process.env.REFRESH_TOKEN_SECRET,
+    let decodedToken;
 
-    )
+    try {
+        decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+    } catch (error) {
+        throw new ApiError(401, "Invalid or expired refresh token");
+    }
 
     const user = await User.findById(decodedToken?._id)
 
@@ -220,13 +225,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         secure: true,
     }
 
-    const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
-        .json(new ApiResponse(200, { accessToken, newRefreshToken }, "Access Token Refreshed Successfully"))
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, { accessToken, refreshToken }, "Access Token Refreshed Successfully"))
 
 })
 

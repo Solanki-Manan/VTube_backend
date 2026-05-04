@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: my-backend
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: REDIS_URI
+              value: "rediss://default:gQAAAAAAAT9DAAIncDJhOTg4NDZjNmQ4MDc0YmJiYjdiODk4ZDRlODZjOGJlY3AyODE3MzE@trusting-reptile-81731.upstash.io:6379"
+            - name: MONGODB_URI
+              value: "mongodb+srv://manansolanki:Mk%4044824482@cluster0.kzwgpof.mongodb.net/?appName=Cluster0"
