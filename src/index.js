@@ -23,13 +23,25 @@ import connectDB from "./db/index.js";
 // app.use("/api/v1/health",healthRouter);
 
 
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+
 connectDB()
-    .then(async () => {
-        await connectRedis();
-        app.listen(process.env.PORT || 8000, () => {
-            console.log(`Server is running on port ${process.env.PORT || 8000}`);
-        });
+    .then(() => {
+        console.log("MongoDB connected");
     })
     .catch((err) => {
-        console.log("Error in DB connection:", err);
+        console.log("DB Error:", err);
+    });
+
+connectRedis()
+    .then(() => {
+        console.log("Redis connected");
+    })
+    .catch((err) => {
+        console.log("Redis Error:", err);
     });
