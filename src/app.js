@@ -3,7 +3,6 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 const app=express();
-
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
