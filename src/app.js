@@ -14,7 +14,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.set("trust proxy", 1); // Trust the first proxy (Render load balancer)
 app.use(helmet()) // for setting various HTTP headers for security
-app.use(apiLimiter);
+// app.use(apiLimiter); // TEMPORARILY DISABLED due to proxy IP issues on Render
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
