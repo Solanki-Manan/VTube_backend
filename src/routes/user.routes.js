@@ -172,18 +172,18 @@ router.route("/register").post(
     validatecoverimage,
     registerValidator,
     validateRequest,
-    // authLimiter,
+    authLimiter,
     registerUser
 )
 
 
-router.route("/login").post(loginValidator, validateRequest, loginUser)
+router.route("/login").post(loginValidator, validateRequest, authLimiter, loginUser)
 
-router.route("/verify-email").post(verifyEmail)
-router.route("/resend-verification-otp").post(resendVerificationOtp)
-router.route("/forgot-password").post(forgotPassword)
+router.route("/verify-email").post(apiLimiter, verifyEmail)
+router.route("/resend-verification-otp").post(apiLimiter, resendVerificationOtp)
+router.route("/forgot-password").post(apiLimiter, forgotPassword)
 
-router.route("/reset-password").post(resetPassword)
+router.route("/reset-password").post(apiLimiter, resetPassword)
 
 //secure routes
 router.route("/logout").post(verifyJWT,logoutUser)

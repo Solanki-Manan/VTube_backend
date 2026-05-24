@@ -12,9 +12,9 @@ const app=express();
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-app.set("trust proxy", 1); // Trust the first proxy (Render load balancer)
+app.set("trust proxy", true); // Trust all proxies to correctly extract client IP behind Render/Cloudflare
 app.use(helmet()) // for setting various HTTP headers for security
-// app.use(apiLimiter); // TEMPORARILY DISABLED due to proxy IP issues on Render
+app.use(apiLimiter);
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
