@@ -23,7 +23,12 @@ import { authLimiter,apiLimiter } from "../middlewares/ratelimiter.middleware.js
 import {upload} from "../middlewares/multer.middleware.js"
 import  cache  from '../middlewares/redis.middleware.js';
 
-import { registerValidator, loginValidator } from '../validators/user.validator.js';
+import { 
+    registerValidator, 
+    loginValidator, 
+    resetPasswordValidator, 
+    changePasswordValidator 
+} from "../validators/user.validator.js";
 import { validateimage,validatecoverimage } from '../middlewares/filevalidator.js';
 import { validateRequest } from '../middlewares/validate.js';
 
@@ -183,14 +188,14 @@ router.route("/verify-email").post(apiLimiter, verifyEmail)
 router.route("/resend-verification-otp").post(apiLimiter, resendVerificationOtp)
 router.route("/forgot-password").post(apiLimiter, forgotPassword)
 
-router.route("/reset-password").post(apiLimiter, resetPassword)
+router.route("/reset-password").post(apiLimiter, resetPasswordValidator, validateRequest, resetPassword)
 
 //secure routes
 router.route("/logout").post(verifyJWT,logoutUser)
 
 router.route("/refresh-token").post(refreshAccessToken)
 
-router.route("/change-password").post(verifyJWT,changeCurrentPassword)
+router.route("/change-password").post(verifyJWT, changePasswordValidator, validateRequest, changeCurrentPassword)
 
 router.route("/current-user").get(verifyJWT,getCurrentUser)
 
