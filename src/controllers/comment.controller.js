@@ -4,12 +4,23 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Comment } from "../models/comments.model.js";
 import redis from "../utils/redis.js";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const {videoId} = req.params
-    //const {page = 1, limit = 10} = req.query
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    if (token) {
+        try {
+            const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+            req.user = { _id: new mongoose.Types.ObjectId(decodedToken._id) };
+        } catch(err) {
+            // Ignore optional auth
+        }
+    }
 
     if(!videoId){
         throw new ApiError(404,"Invalid video link")
@@ -18,11 +29,71 @@ const getVideoComments = asyncHandler(async (req, res) => {
     if(!video){
         throw new ApiError(400,"There is no video")
     }
-    const comments=await Comment.find({video:videoId})
-        .populate("owner","name email")
-        .sort({createdAt:-1})
-        .skip((page-1)*limit)
-        .limit(limit)
+    const skip = (page - 1) * limit;
+
+    const comments = await Comment.aggregate([
+        {
+            $match: {
+                video: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner"
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "likes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likes" },
+                isLiked: {
+                    $cond: {
+                        if: {
+                            $in: [req.user ? req.user._id : null, "$likes.likedBy"]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                content: 1,
+                createdAt: 1,
+                likesCount: 1,
+                isLiked: 1,
+                owner: {
+                    _id: 1,
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1
+                }
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: limit
+        }
+    ]);
     return res.status(200).json(
         new ApiResponse(200,comments,"Comments fetched sucessfully")
     )

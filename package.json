@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+    "worker": "node --experimental-json-modules src/worker/video.worker.js",
+    "worker:dev": "nodemon --experimental-json-modules src/worker/video.worker.js"
   },
   "author": "",
   "license": "ISC",

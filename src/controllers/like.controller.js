@@ -99,7 +99,10 @@ const toggletweetlike=asyncHandler(async(req,res)=>{
 })
 
 
-const  totallikesofvideo=asyncHandler(async(req,res)=>{
+import jwt from "jsonwebtoken";
+import { User } from "../models/user.model.js";
+
+const totallikesofvideo=asyncHandler(async(req,res)=>{
     const {videoid}=req.params;
     if(!mongoose.Types.ObjectId.isValid(videoid)){
         throw new ApiError(400,"Invalid video id");
@@ -109,9 +112,25 @@ const  totallikesofvideo=asyncHandler(async(req,res)=>{
         throw new ApiError(404,"Video not found");
     }
     const totallikes=await Like.countDocuments({video:videoid});
+    
+    let isLiked = false;
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    if (token) {
+        try {
+            const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+            const user = await User.findById(decodedToken?._id);
+            if (user) {
+                const existinglike = await Like.findOne({video: videoid, likedBy: user._id});
+                if (existinglike) isLiked = true;
+            }
+        } catch(err) {
+            // Ignore token verification errors for optional auth
+        }
+    }
+
     return res
         .status(200)
-        .json(new ApiResponse(200,totallikes,"Total likes fetched successfully"))
+        .json(new ApiResponse(200,{ totalLikes: totallikes, isLiked },"Total likes fetched successfully"))
 })
 
 const totallikesofcomment=asyncHandler(async(req,res)=>{
@@ -145,12 +164,68 @@ const totallikesoftweet=asyncHandler(async(req,res)=>{
 })
 
 
+const getLikedVideos = asyncHandler(async(req, res) => {
+    const likedVideos = await Like.aggregate([
+        {
+            $match: {
+                likedBy: req.user._id,
+                video: { $exists: true, $ne: null }
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "videoDetails"
+            }
+        },
+        {
+            $unwind: "$videoDetails"
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "videoDetails.owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        {
+            $project: {
+                _id: "$videoDetails._id",
+                title: "$videoDetails.title",
+                description: "$videoDetails.description",
+                views: "$videoDetails.views",
+                createdAt: "$videoDetails.createdAt",
+                thumbnailfile: "$videoDetails.thumbnailfile",
+                duration: "$videoDetails.duration",
+                owner: {
+                    _id: "$ownerDetails._id",
+                    fullName: "$ownerDetails.fullName",
+                    username: "$ownerDetails.username",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        }
+    ]);
+    
+    return res.status(200).json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"));
+});
+
 export {
     togglevideolike,
     totallikesofvideo,
     togglecommentlike,
     toggletweetlike,
     totallikesofcomment,
-    totallikesoftweet
+    totallikesoftweet,
+    getLikedVideos
 }
 

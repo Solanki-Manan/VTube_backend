@@ -140,13 +140,9 @@ router.route("/publish").post(verifyJWT,upload.fields([
     }
 ]),apiLimiter, publishVideo )   
 
-router.route("/all").get(
-    cache((req)=>`videos:all:${req.originalUrl}`,300),
-    getallvideos)
+router.route("/all").get(getallvideos)
 
-router.route("/get/:id").get(
-    cache((req)=>`video:${req.params.id}`,600),
-    getvideobyid)
+router.route("/get/:id").get(getvideobyid)
 router.route("/update/:id").put(verifyJWT,updatevideo)
 router.route("/delete/:id").delete(verifyJWT,deletevideo)
 

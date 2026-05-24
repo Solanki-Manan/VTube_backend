@@ -6,16 +6,14 @@ import { toggletweetlike } from "../controllers/like.controller.js";
 import { totallikesofvideo } from "../controllers/like.controller.js";
 import { totallikesofcomment } from "../controllers/like.controller.js";
 import { totallikesoftweet } from "../controllers/like.controller.js";
+import { getLikedVideos } from "../controllers/like.controller.js";
 import cache from "../middlewares/redis.middleware.js";
 const router = Router();
 
 
 router.route("/togglevideolike/:videoid").post(verifyJWT,togglevideolike)
 
-router.route("/totallikesofvideo/:videoid").get(
-    cache((req)=>`totallikesofvideo:${req.params.videoid}`,300),
-    totallikesofvideo
-)
+router.route("/totallikesofvideo/:videoid").get(totallikesofvideo)
 
 router.route("/togglecommentlike/:commentid").post(verifyJWT,togglecommentlike)
 
@@ -29,5 +27,7 @@ router.route("/totallikesoftweet/:tweetid").get(
     cache((req)=>`totallikesoftweet:${req.params.tweetid}`,300),
     totallikesoftweet
 )
+
+router.route("/videos").get(verifyJWT, getLikedVideos)
 
 export default router;

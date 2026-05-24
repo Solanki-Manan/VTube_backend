@@ -4,6 +4,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import redis from "../utils/redis.js"
+import jwt from "jsonwebtoken"
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     try {
@@ -28,17 +29,103 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    // TODO: get user tweets
-    const ownerId = req.user._id
-    const {page = 1, limit = 10} = req.query
+    const { userId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    const tweets = await Tweet.find({owner:ownerId})
-        .sort({createdAt:-1})
-        .skip((page-1)*limit)
-        .limit(limit)
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    if (token) {
+        try {
+            const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+            req.user = { _id: new mongoose.Types.ObjectId(decodedToken._id) };
+        } catch(err) {}
+    }
+
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user id");
+    }
+
+    const tweets = await Tweet.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner"
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "likes"
+            }
+        },
+        {
+            $addFields: {
+                totalLikes: { $size: "$likes" },
+                isLiked: {
+                    $cond: {
+                        if: {
+                            $and: [
+                                { $ne: [req.user, undefined] },
+                                { $in: [req.user?._id, "$likes.likedBy"] }
+                            ]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                content: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                totalLikes: 1,
+                isLiked: 1,
+                owner: {
+                    _id: 1,
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1
+                }
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: limit
+        }
+    ]);
+
+    const totalTweets = await Tweet.countDocuments({ owner: userId });
+
     return res
     .status(200)
-    .json(new ApiResponse(200,tweets,"User tweets fetched sucessfully"))
+    .json(new ApiResponse(200, {
+        tweets,
+        page,
+        limit,
+        total: totalTweets,
+        totalPages: Math.ceil(totalTweets / limit)
+    }, "User tweets fetched successfully"));
 })
 
 const updateTweet = asyncHandler(async (req, res) => {

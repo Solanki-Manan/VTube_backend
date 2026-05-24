@@ -187,8 +187,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true,
-
+        secure: process.env.NODE_ENV === "production",
     }
 
     return res
@@ -280,7 +279,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
     }
 
     return res
@@ -523,7 +522,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         {
             $lookup: {
                 from: "videos",
-                localField: "watchHistory",
+                localField: "watchhistory",
                 foreignField: "_id",
                 as: "watchHistory",
                 pipeline: [
@@ -562,11 +561,74 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, watchHistory, "Watch history fetched successfully"))
 })
 
+const addVideoToHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const user = await User.findById(req.user._id);
+    
+    // Remove if already exists so we can add it to the top/end (optional, but good for history)
+    user.watchhistory = user.watchhistory.filter(id => id.toString() !== videoId);
+    
+    // Add to the beginning of the array so newest is first
+    user.watchhistory.unshift(videoId);
+    
+    await user.save({ validateBeforeSave: false });
+
+    // Clear the cache for watch history!
+    await redis.del(`watchhistory:${req.user._id.toString()}`);
+
+    return res.status(200).json(new ApiResponse(200, {}, "Video added to history"));
+});
+
+const resendVerificationOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const emailNormalized = email?.toLowerCase().trim();
+
+    if (!emailNormalized) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email: emailNormalized });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.isVerified) {
+        throw new ApiError(400, "Email is already verified");
+    }
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOTP = await bcrypt.hash(otp, 10);
+    console.log("Resent OTP (for testing):", otp);
+
+    user.emailOTP = hashedOTP;
+    user.emailOTPExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail(
+        emailNormalized,
+        "Verify your email - OTP Resent",
+        `Your new OTP for email verification is: ${otp}. It expires in 10 minutes.`
+    );
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "OTP resent successfully. Check your email or backend terminal.")
+    );
+});
+
 export {
     registerUser,
     loginUser,
     logoutUser,
     verifyEmail,
+    resendVerificationOtp,
     forgotPassword,
     resetPassword,
     refreshAccessToken,
@@ -576,5 +638,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    addVideoToHistory
 };

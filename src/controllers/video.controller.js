@@ -60,11 +60,25 @@ const getallvideos = asyncHandler(async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const totalvideos=await Video.countDocuments({ ispublished: true })
+    const query = req.query.q;
+    const filter = { ispublished: true };
+    if (query) {
+        filter.$or = [
+            { title: { $regex: query, $options: "i" } },
+            { description: { $regex: query, $options: "i" } }
+        ];
+    }
 
-    const videos = await Video.find({ ispublished: true })
-        .populate("owner", "fullname username email avatar")
-        .sort({ createdAt: -1 })
+    const sortBy = req.query.sortBy || "createdAt";
+    const sortType = req.query.sortType === "asc" ? 1 : -1;
+    const sortOptions = {};
+    sortOptions[sortBy] = sortType;
+
+    const totalvideos = await Video.countDocuments(filter)
+
+    const videos = await Video.find(filter)
+        .populate("owner", "fullName username email avatar")
+        .sort(sortOptions)
         .skip(skip)
         .limit(limit)
         
@@ -88,7 +102,7 @@ const getvideobyid = asyncHandler(async (req, res) => {
         }
 
 
-        const video = await Video.findById(id)
+        const video = await Video.findById(id).populate("owner", "fullName username email avatar")
         if (!video) {
             throw new ApiError(404, "Video not found")
         }

@@ -10,8 +10,10 @@ import { connection } from "../queue/queue.config.js";
 
 
 dotenv.config();
-await mongoose.connect(process.env.MONGODB_URI);
-console.log("MongoDB connected in worker");
+if (mongoose.connection.readyState !== 1) {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("MongoDB connected in worker");
+}
 
 const videoWorker = new Worker("video-processing", async (job) => {
    try {

@@ -7,8 +7,8 @@ const router = Router();
 
 
 router.route("/createtweet").post(verifyJWT,apiLimiter,createTweet)
-router.route("/getusertweets").get(verifyJWT,
-    cache((req)=>`usertweets:${req.user._id}:${req.query.page || 1}:${req.query.limit || 10}`,300),
+router.route("/getusertweets/:userId").get(
+    cache((req)=>`usertweets:${req.params.userId}:${req.query.page || 1}:${req.query.limit || 10}`,300),
     getUserTweets)
 router.route("/updatetweet/:tweetId").put(verifyJWT,updateTweet)
 router.route("/deletetweet/:tweetId").delete(verifyJWT,deleteTweet)

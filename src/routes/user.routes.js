@@ -4,6 +4,7 @@ import {
   loginUser,
   logoutUser,
   verifyEmail,
+  resendVerificationOtp,
   forgotPassword,
   resetPassword,
   refreshAccessToken,
@@ -13,7 +14,8 @@ import {
   getUserChannelProfile,
   getWatchHistory,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  addVideoToHistory
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authLimiter,apiLimiter } from "../middlewares/ratelimiter.middleware.js";
@@ -178,7 +180,7 @@ router.route("/register").post(
 router.route("/login").post(loginValidator, validateRequest, authLimiter, loginUser)
 
 router.route("/verify-email").post(apiLimiter, verifyEmail)
-
+router.route("/resend-verification-otp").post(apiLimiter, resendVerificationOtp)
 router.route("/forgot-password").post(apiLimiter, forgotPassword)
 
 router.route("/reset-password").post(apiLimiter, resetPassword)
@@ -200,7 +202,6 @@ router.route("/update-cover-image").patch(verifyJWT,upload.single("coverImage"),
 
 router.route("/getchannelprofile/:username").get(
     verifyJWT,
-    cache((req)=>`channel:${req.params.username?.toLowerCase()}`,300),
     getUserChannelProfile
 )
 
@@ -208,6 +209,11 @@ router.route("/getwatchhistory").get(
     verifyJWT,
     cache((req)=>`watchhistory:${req.user._id.toString()}`,300),
     getWatchHistory
+)
+
+router.route("/add-history/:videoId").patch(
+    verifyJWT,
+    addVideoToHistory
 )
 
 

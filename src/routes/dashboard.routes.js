@@ -6,7 +6,7 @@ const router = Router()
 
 router.get("/channelstats/:userid", 
     verifyJWT, 
-    cache((req)=>`channelstats:${req.params.userid}`,300),
+    cache((req)=>`dashboardstats:${req.params.userid}`,300),
     getChannelStats)
 router.get("/channelvideos/:userid", 
     verifyJWT, 

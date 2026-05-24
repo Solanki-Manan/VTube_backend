@@ -28,12 +28,12 @@ const getChannelStats = asyncHandler(async (req, res) => {
     });
 
      return res.status(200).json(
-        new ApiResponse(true, "Stats fetched successfully", {
+        new ApiResponse(200, {
             totalvideos,
             totalviews,
             totallikes,
             totalsubscribers
-        })
+        }, "Stats fetched successfully")
     );
 })
 
@@ -53,13 +53,13 @@ const getChannelVideos = asyncHandler(async (req, res) => {
         .limit(limit);
 
     return res.status(200).json(
-        new ApiResponse(true, "Videos fetched successfully", {
+        new ApiResponse(200, {
             videos,
             page,
             limit,
             totalVideos,
             totalPages: Math.ceil(totalVideos / limit)
-        })
+        }, "Videos fetched successfully")
     );
 });
 

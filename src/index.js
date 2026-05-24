@@ -32,16 +32,15 @@ app.listen(PORT, () => {
 
 connectDB()
     .then(() => {
-        console.log("MongoDB connected");
+        import("./worker/video.worker.js").then(() => {
+            console.log("Video processing worker initialized inline");
+        });
     })
     .catch((err) => {
         console.log("DB Error:", err);
     });
 
 connectRedis()
-    .then(() => {
-        console.log("Redis connected successfully");
-    })
     .catch((err) => {
         console.log("Redis Error:", err);
     });
