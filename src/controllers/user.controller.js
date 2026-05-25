@@ -554,7 +554,13 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         }
     ])
 
-    const watchHistory=user[0].watchHistory;
+    const originalOrder = user[0].watchhistory.map(id => id.toString());
+    
+    // Sort the populated videos to match the exact recent-first order of the original array
+    const watchHistory = user[0].watchHistory.sort((a, b) => {
+        return originalOrder.indexOf(a._id.toString()) - originalOrder.indexOf(b._id.toString());
+    });
+
     return res
         .status(200)
         .json(new ApiResponse(200, watchHistory, "Watch history fetched successfully"))

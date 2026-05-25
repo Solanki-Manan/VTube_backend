@@ -99,17 +99,28 @@ const getvideobyid = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Invalid video ID")
         }
 
-
-        const video = await Video.findByIdAndUpdate(
-            id,
-            { $inc: { views: 1 } },
-            { new: true }
-        ).populate("owner", "fullName username email avatar");
+        // First fetch the video without incrementing to check published status
+        const video = await Video.findById(id).populate("owner", "fullName username email avatar");
 
         if (!video) {
             throw new ApiError(404, "Video not found")
         }
 
+        if (!video.ispublished) {
+            throw new ApiError(403, "This video is not yet available")
+        }
+
+        // Use a Redis key per IP + videoId to prevent view count spam (24hr lock)
+        const viewerIp = req.ip || req.connection?.remoteAddress || 'unknown';
+        const viewLockKey = `viewlock:${viewerIp}:${id}`;
+        const alreadyViewed = await redis.get(viewLockKey);
+
+        if (!alreadyViewed) {
+            // First view in 24hrs — increment and set lock
+            await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
+            await redis.set(viewLockKey, '1', 'EX', 86400); // 24 hours TTL
+            video.views = video.views + 1; // Update local copy for response
+        }
 
         return res
             .status(200)

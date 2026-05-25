@@ -12,12 +12,17 @@ const app=express();
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-app.set("trust proxy", true); // Trust all proxies to correctly extract client IP behind Render/Cloudflare
+app.set("trust proxy", 1); // Trust 1 proxy hop to correctly extract client IP behind Render/Cloudflare
 app.use(helmet()) // for setting various HTTP headers for security
 app.use(apiLimiter);
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: [
+      process.env.CORS_ORIGIN,
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175'
+    ],
     credentials: true,
 }))
 

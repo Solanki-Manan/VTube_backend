@@ -26,7 +26,7 @@ export const authLimiter = rateLimit({
         sendCommand: (...args) => redisclient.call(...args)
     }),
     windowMs: 15 * 60 * 1000, // 15 minutes window
-    max: 100, // Increased to 100 for easier testing
+    max: 10000, // Increased to 10000 for easier testing
     message: "Too many login/registration attempts from this IP, please try again after 15 minutes",
     standardHeaders: true,
     legacyHeaders: false,

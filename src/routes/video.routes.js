@@ -140,7 +140,7 @@ router.route("/publish").post(verifyJWT,upload.fields([
     }
 ]),apiLimiter, publishVideo )   
 
-router.route("/all").get(getallvideos)
+router.route("/all").get(apiLimiter, getallvideos)
 
 router.route("/get/:id").get(getvideobyid)
 router.route("/update/:id").put(verifyJWT,updatevideo)
