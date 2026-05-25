@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import fs from 'fs';
 
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './utils/swagger.js';
@@ -77,6 +78,20 @@ app.use("/api/v1/likes",likeRouter)
 
 // Global Error Handler
 app.use((err, req, res, next) => {
+    // Cleanup temporary files uploaded by multer if the request failed
+    if (req.file) {
+        fs.unlink(req.file.path, () => {});
+    }
+    if (req.files) {
+        if (Array.isArray(req.files)) {
+            req.files.forEach(file => fs.unlink(file.path, () => {}));
+        } else {
+            Object.values(req.files).forEach(fileArray => {
+                fileArray.forEach(file => fs.unlink(file.path, () => {}));
+            });
+        }
+    }
+
     const statusCode = err.statusCode || 500;
     res.status(statusCode).json({
         success: false,
