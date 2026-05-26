@@ -7,6 +7,11 @@ const redisclient = new Redis(process.env.REDIS_URI, {
   tls: {}   
 });
 
+// Prevent Upstash connection drops from crashing the entire app
+redisclient.on("error", (err) => {
+  console.error("Rate Limiter Redis Error (non-fatal):", err.message);
+});
+
 
 
 //for normal apis

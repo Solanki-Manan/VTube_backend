@@ -15,7 +15,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.set("trust proxy", 1); // Trust 1 proxy hop to correctly extract client IP behind Render/Cloudflare
 app.use(helmet()) // for setting various HTTP headers for security
-app.use(apiLimiter);
+// app.use(apiLimiter); // Removed global rate limiter to massively improve latency under load
 
 app.use(cors({
     origin: [
